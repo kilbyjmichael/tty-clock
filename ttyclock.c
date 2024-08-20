@@ -172,9 +172,15 @@ void
 update_hour(void)
 {
      int ihour;
+     int ms;
      char tmpstr[128];
 
-     ttyclock.lt = time(NULL);
+     struct timeval tv;
+     gettimeofday(&tv, NULL);
+
+     ttyclock.lt = tv.tv_sec;
+     ms = tv.tv_usec / 1000;
+
      ttyclock.tm = localtime(&(ttyclock.lt));
      if(ttyclock.option.utc) {
           ttyclock.tm = gmtime(&(ttyclock.lt));
@@ -210,6 +216,11 @@ update_hour(void)
      /* Set seconds */
      ttyclock.date.second[0] = ttyclock.tm->tm_sec / 10;
      ttyclock.date.second[1] = ttyclock.tm->tm_sec % 10;
+
+     /* Set milliseconds */
+     ttyclock.date.ms[0] = ms / 100;
+     ttyclock.date.ms[1] = (ms % 100) / 10;
+     ttyclock.date.ms[2] = (ms % 100) % 10;
 
      return;
 }
@@ -294,6 +305,19 @@ draw_clock(void)
           draw_number(ttyclock.date.second[1], 1, 46);
      }
 
+     /* Draw milliseconds if the option is enable */
+     if(ttyclock.option.millisecond)
+     {
+          /* Again 2 dot for number separation */
+          wbkgdset(ttyclock.framewin, dotcolor);
+          mvwaddstr(ttyclock.framewin, 5, 54, "  ");
+
+          /* Draw second numbers */
+          draw_number(ttyclock.date.ms[0], 1, 58);
+          draw_number(ttyclock.date.ms[1], 1, 65);
+          //draw_number(ttyclock.date.ms[2], 1, 72);
+     }
+
      return;
 }
 
@@ -329,7 +353,7 @@ clock_move(int x, int y, int w, int h)
 
           if (ttyclock.option.box) {
                box(ttyclock.datewin,  0, 0);
-          }
+         }
      }
 
      if (ttyclock.option.box)
@@ -338,7 +362,7 @@ clock_move(int x, int y, int w, int h)
      }
 
      wrefresh(ttyclock.framewin);
-     wrefresh(ttyclock.datewin); 
+     wrefresh(ttyclock.datewin);
      return;
 }
 
@@ -426,7 +450,7 @@ key_event(void)
      int i, c;
 
      struct timespec length = { ttyclock.option.delay, ttyclock.option.nsdelay };
-     
+
      fd_set rfds;
      FD_ZERO(&rfds);
      FD_SET(STDIN_FILENO, &rfds);
@@ -562,14 +586,18 @@ main(int argc, char **argv)
      strncpy(ttyclock.option.format, "%F", sizeof (ttyclock.option.format));
      /* Default color */
      ttyclock.option.color = COLOR_GREEN; /* COLOR_GREEN = 2 */
-     /* Default delay */
-     ttyclock.option.delay = 1; /* 1FPS */
-     ttyclock.option.nsdelay = 0; /* -0FPS */
+     /* old Default delay */
+     //ttyclock.option.delay = 1; /* 1FPS */
+     //ttyclock.option.nsdelay = 0; /* -0FPS */
+     //ttyclock.option.blink = false;
+     /* milli default delay */
+     ttyclock.option.delay = 0; /* 100FPS */
+     ttyclock.option.nsdelay = 10 * 1000 * 1000; /* 10ms */
      ttyclock.option.blink = false;
 
      atexit(cleanup);
 
-     while ((c = getopt(argc, argv, "iuvsScbtrhBxnDC:f:d:T:a:")) != -1)
+     while ((c = getopt(argc, argv, "iuvsmScbtrhBxnDC:f:d:T:a:")) != -1)
      {
           switch(c)
           {
@@ -577,6 +605,7 @@ main(int argc, char **argv)
           default:
                printf("usage : tty-clock [-iuvsScbtrahDBxn] [-C [0-7]] [-f format] [-d delay] [-a nsdelay] [-T tty] \n"
                       "    -s            Show seconds                                   \n"
+                      "    -m            Show milliseconds                              \n"
                       "    -S            Screensaver mode                               \n"
                       "    -x            Show box                                       \n"
                       "    -c            Set the clock at the center of the terminal    \n"
@@ -610,6 +639,9 @@ main(int argc, char **argv)
                break;
           case 's':
                ttyclock.option.second = true;
+               break;
+          case 'm':
+               ttyclock.option.millisecond = true;
                break;
           case 'S':
                ttyclock.option.screensaver = true;
