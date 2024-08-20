@@ -44,6 +44,7 @@
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/time.h>  // Include this header for gettimeofday
 #include <locale.h>
 #include <time.h>
 #include <unistd.h>
@@ -51,7 +52,7 @@
 
 /* Macro */
 #define NORMFRAMEW 35
-#define SECFRAMEW  54
+#define SECFRAMEW  75
 #define DATEWINH   3
 #define AMSIGN     " [AM]"
 #define PMSIGN     " [PM]"
@@ -71,6 +72,7 @@ typedef struct
      struct
      {
           bool second;
+          bool millisecond;
           bool screensaver;
           bool twelve;
           bool center;
@@ -101,6 +103,7 @@ typedef struct
           unsigned int hour[2];
           unsigned int minute[2];
           unsigned int second[2];
+          unsigned int ms[3];
           char datestr[256];
           char old_datestr[256];
      } date;
